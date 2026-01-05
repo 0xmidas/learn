@@ -1,0 +1,1 @@
+- [ ] make sure all module API's match pytorch (so also make it such that device etc works)

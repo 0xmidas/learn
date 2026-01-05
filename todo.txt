@@ -1,1 +1,2 @@
 - [ ] make sure all module API's match pytorch (so also make it such that device etc works)
+- [ ] add a keep_dim flag to conv as a nice helper to pad to make sure dims are kept

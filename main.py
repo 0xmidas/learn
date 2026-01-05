@@ -8,14 +8,14 @@ from einops import rearrange
 
 from modules.activation import ReLU
 from modules.mlp import MLP
-from modules.conv import Conv2d
+from modules.conv import Conv2d, MaxPool2d
 
 
 batch_size = 32
 
 transforms = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
-    torchvision.transforms.Normalize([0.1307], [0.3081]),           # this isnt good i think
+    torchvision.transforms.Normalize([0.1307], [0.3081]), 
 ])
 
 mnist_train_data = torchvision.datasets.MNIST("./data", train=True, transform=transforms, download=True)
@@ -26,34 +26,55 @@ test_data_loader = torch.utils.data.DataLoader(mnist_test_data, batch_size=batch
 in_size = 28 * 28
 out_size = 10
 
-model = MLP(in_size, [256], out_size)
+
+class ConvTestModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=3, kernel_size=3, stride=1)
+        self.conv2 = torch.nn.Conv2d(in_channels=3, out_channels=6, kernel_size=3, stride=1)
+        self.maxpool = MaxPool2d(kernel_size=2, stride=2)
+        self.activation = ReLU()
+        self.mlp = MLP(216 , [128], 10)
+
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.activation(x)
+        x = self.maxpool(x)
+        x = self.conv2(x)
+        x = self.activation(x)
+        x = self.maxpool(x)
+        x = rearrange(x, "B C H W -> B (C H W)")
+        x = self.mlp(x)
+        return x
+
+model = ConvTestModel()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 cross_entropy_loss = nn.CrossEntropyLoss()
 
-
-
 losses = []
-for batch in train_data_loader:
-    optimizer.zero_grad()
+num_epochs = 3
+for _ in range(num_epochs):
+    for batch in train_data_loader:
+        optimizer.zero_grad()
 
-    inputs, labels = batch
-    inputs = rearrange(inputs, "B C W H -> B (C H W)")
+        inputs, labels = batch
 
-    predictions = model(inputs)
+        predictions = model(inputs)
 
-    loss = cross_entropy_loss(predictions, labels)
+        loss = cross_entropy_loss(predictions, labels)
 
-    losses.append(loss.item())
+        losses.append(loss.item())
 
-    loss.backward()
-    optimizer.step()
+        loss.backward()
+        optimizer.step()
 
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 correct = 0 
 total = 0
 with torch.no_grad():
     for batch in test_data_loader:
         inputs, labels = batch
-        inputs = rearrange(inputs, "B C W H -> B (C H W)")
         logprobs = model(inputs)
         predictions = torch.argmax(logprobs, dim=1)
         

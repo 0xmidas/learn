@@ -6,7 +6,7 @@ from modules.activation import ReLU
 class Linear(nn.Module):
     def __init__(self, in_size, out_size, device=None):
         super().__init__()
-        self.W: torch.Tensor = nn.Parameter((torch.rand([out_size, in_size]) - 0.5) * 0.01) # Store Transposed, for better cache access during forward pass
+        self.W: torch.Tensor = nn.Parameter(torch.randn([out_size, in_size])) # Store Transposed, for better cache access during forward pass
         self.b: torch.Tensor = nn.Parameter(torch.zeros(out_size))
 
 

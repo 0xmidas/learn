@@ -11,7 +11,7 @@
 - [x] MaxPool2d implementation
 - [x] Basic CNN architecture (conv → relu → pool)
 - [x] Train on MNIST
-- [ ] im2col efficient convolution
+- [x] im2col efficient convolution
 - [ ] Batch normalization
 - [ ] Residual/skip connections
 - [ ] Depthwise separable convolutions

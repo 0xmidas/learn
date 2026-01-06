@@ -38,104 +38,107 @@ class Conv2d(nn.Module):
         self.groups: int = groups
         self.padding_mode: str = padding_mode
 
+        self.k: int = math.sqrt(1 / (self.C_in * self.kernel_size[0] * self.kernel_size[1]))
         self.kernels = nn.Parameter(
-            torch.randn(
+            torch.rand(
                 (out_channels, in_channels, self.kernel_size[0], self.kernel_size[1]),
                 dtype=dtype,
                 device=device,
-            )
+            ) * 2 * self.k - self.k
         )
         if bias:
             self.biases = nn.Parameter(
-                torch.zeros(out_channels, dtype=dtype, device=device)
+                torch.rand(out_channels, dtype=dtype, device=device) * 2 * self.k - self.k
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # first naive way
-        # x = (D, C_in, H, W)
-        D, C_in, H_in, W_in = x.shape
-        if self.padding_mode == "zeros":
-            x = nn.functional.pad(
+        x = nn.functional.pad(
                 x, (self.padding[1], self.padding[1], self.padding[0], self.padding[0])
             )
-        else:
-            raise NotImplementedError
+        N, C_in, H_in, W_in = x.shape
 
-        # out = (D, C_out, H_out, W_out)
-        H_out = math.floor(
-            (H_in + 2 * self.padding[0] - self.kernel_size[0]) / (self.stride[0]) + 1
-        )
-        W_out = math.floor(
-            (W_in + 2 * self.padding[1] - self.kernel_size[1]) / (self.stride[1]) + 1
-        )
-        out = torch.zeros((D, self.C_out, H_out, W_out), device=x.device, dtype=x.dtype)
+        H_out = (H_in - self.kernel_size[0]) // self.stride[0] + 1
+        W_out = (W_in - self.kernel_size[1]) // self.stride[1] + 1
+ 
+        col = self.im2col(x, H_out, W_out)
+        kernels_flat = rearrange(self.kernels, "C_out C_in k1 k2 -> C_out (C_in k1 k2)")
 
-        for kernel_idx in range(self.C_out):
-            for i in range(0, H_out):
-                for j in range(0, W_out):
-                    total = 0.0
-                    for channel_idx in range(self.C_in):
-                        kernel = self.kernels[kernel_idx, channel_idx]
-                        window = x[
-                            :,
-                            channel_idx,
-                            i * self.stride[0] : i * self.stride[0]
-                            + self.kernel_size[0],
-                            j * self.stride[1] : j * self.stride[1]
-                            + self.kernel_size[1],
-                        ]
-                        avg = torch.sum(window * kernel, dim=(1, 2))
-                        total += avg
-                    out[:, kernel_idx, i, j] = (
-                        total + (self.biases[kernel_idx] if self.has_bias else 0.0)
-                    )
-        return out
+        out = kernels_flat @ col
+
+        return out.reshape(N, self.C_out, H_out, W_out)
+        
+
+    def im2col(self, x: torch.Tensor, H_out: int, W_out: int):
+        N, C, H, W = x.shape
+       
+        col = torch.zeros((N, C * self.kernel_size[0] * self.kernel_size[1], H_out * W_out))
+        
+        col_idx = 0
+        for i in range(0, H - self.kernel_size[0] + 1, self.stride[0]):
+            for j in range(0, W - self.kernel_size[1] + 1, self.stride[1]):
+                    patch = x[:, :, i:i+self.kernel_size[0], j:j+self.kernel_size[1]]
+                    col_idx = (i // self.stride[0]) * W_out + (j // self.stride[1])
+                    col[:, :, col_idx] = patch.reshape(N, -1)
+
+        return col
 
 
 class MaxPool2d(nn.Module):
     def __init__(
         self,
         kernel_size: int | tuple[int, int],
-        stride: int | tuple[int, int] = (0, 0),
-        padding: int | tuple[int, int] = (0, 0),
+        stride: int | tuple[int, int] | None = None,
+        padding: int | tuple[int, int] = 0,
     ) -> None:
         super().__init__()
         self.kernel_size: tuple[int, int] = (
             (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
         )
-        self.stride: tuple[int, int] = (
-            (stride, stride) if isinstance(stride, int) else stride
-        )
+        # PyTorch default: stride = kernel_size if not specified
+        if stride is None:
+            self.stride: tuple[int, int] = self.kernel_size
+        else:
+            self.stride: tuple[int, int] = (stride, stride) if isinstance(stride, int) else stride
         self.padding: tuple[int, int] = (
             (padding, padding) if isinstance(padding, int) else padding
         )
-        # TODO return indices for max unpool
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        D, C_in, H_in, W_in = x.shape
+        N, C, H_in, W_in = x.shape
+        
         x = nn.functional.pad(
-            x, (self.padding[1], self.padding[1], self.padding[0], self.padding[0])
+            x, (self.padding[1], self.padding[1], self.padding[0], self.padding[0]),
+            value=float('-inf')  # so padded values never win the max
         )
-        # out = (D, C_out, W_out, H_out)
-        H_out = math.floor(
-            (H_in + 2 * self.padding[0] - self.kernel_size[0]) / (self.stride[0]) + 1
-        )
-        W_out = math.floor(
-            (W_in + 2 * self.padding[1] - self.kernel_size[1]) / (self.stride[1]) + 1
-        )
-        out = torch.zeros((D, C_in, H_out, W_out), device=x.device, dtype=x.dtype)
-
-        for c in range(C_in):
-            for i in range(0, H_out):
-                for j in range(0, W_out):
-                    window = x[
-                        :,
-                        c,
-                        i * self.stride[0] : i * self.stride[0] + self.kernel_size[0],
-                        j * self.stride[1] : j * self.stride[1] + self.kernel_size[1],
-                    ]
-                    window = rearrange(window, "B H W -> B (H W)")
-                    max_val = torch.max(window, dim=1).values
-                    out[:, c, i, j] = max_val
-
+        
+        _, _, H_pad, W_pad = x.shape
+        H_out = (H_pad - self.kernel_size[0]) // self.stride[0] + 1
+        W_out = (W_pad - self.kernel_size[1]) // self.stride[1] + 1
+        
+        # Extract all windows: (N, C, H_out, W_out, kH, kW)
+        windows = self._extract_windows(x, H_out, W_out)
+        
+        # Flatten kernel dims and take max: (N, C, H_out, W_out, kH*kW) -> (N, C, H_out, W_out)
+        out = windows.reshape(N, C, H_out, W_out, -1).max(dim=-1).values
+        
         return out
+
+    def _extract_windows(self, x: torch.Tensor, H_out: int, W_out: int) -> torch.Tensor:
+        """Extract all pooling windows into shape (N, C, H_out, W_out, kH, kW)"""
+        N, C, H, W = x.shape
+        kH, kW = self.kernel_size
+        sH, sW = self.stride
+        
+        # Use as_strided for zero-copy view 
+        # Output shape: (N, C, H_out, W_out, kH, kW)
+        shape = (N, C, H_out, W_out, kH, kW)
+        strides = (
+            x.stride(0),                    # batch
+            x.stride(1),                    # channel  
+            x.stride(2) * sH,               # output row (jump by stride)
+            x.stride(3) * sW,               # output col (jump by stride)
+            x.stride(2),                    # kernel row
+            x.stride(3),                    # kernel col
+        )
+        
+        return x.as_strided(shape, strides)

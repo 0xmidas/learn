@@ -6,7 +6,7 @@ from einops import rearrange
 
 from modules.activation import ReLU
 from modules.mlp import MLP
-from modules.conv import MaxPool2d
+from modules.conv import MaxPool2d, Conv2d
 
 
 batch_size = 32
@@ -38,15 +38,15 @@ out_size = 10
 class ConvTestModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = torch.nn.Conv2d(
+        self.conv1 = Conv2d(
             in_channels=1, out_channels=3, kernel_size=3, stride=1
         )
-        self.conv2 = torch.nn.Conv2d(
+        self.conv2 = Conv2d(
             in_channels=3, out_channels=6, kernel_size=3, stride=1
         )
         self.maxpool = MaxPool2d(kernel_size=2, stride=2)
         self.activation = ReLU()
-        self.mlp = MLP(216, [128], 10)
+        self.mlp = MLP(150, [128], 10)
 
     def forward(self, x):
         x = self.conv1(x)

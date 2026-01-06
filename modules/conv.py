@@ -65,6 +65,9 @@ class Conv2d(nn.Module):
 
         out = kernels_flat @ col
 
+        if self.has_bias:
+            out = out + self.biases.view(1, -1, 1)
+
         return out.reshape(N, self.C_out, H_out, W_out)
         
 

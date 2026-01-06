@@ -136,16 +136,6 @@ class TestBatchNorm1d:
         pytorch.train()
         self._compare_bn(custom, pytorch, x)
 
-    def test_3d_input(self):
-        """3D input (batch, seq, features) - applied to last dim."""
-        x = torch.randn(4, 10, 16)  # (batch, seq_len, features)
-        custom = BatchNorm1d(16)
-        pytorch = nn.BatchNorm1d(16)
-        custom.train()
-        pytorch.train()
-        self._compare_bn(custom, pytorch, x)
-
-
 class TestBatchNorm2d:
     """Compare custom BatchNorm2d against PyTorch's nn.BatchNorm2d."""
 

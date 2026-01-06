@@ -12,17 +12,14 @@
 - [x] Basic CNN architecture (conv → relu → pool)
 - [x] Train on MNIST
 - [x] im2col efficient convolution
-- [ ] Batch normalization
-- [ ] Residual/skip connections
+- [x] Batch normalization
+- [x] Residual/skip connections
 - [ ] Depthwise separable convolutions
 - [ ] Transposed convolutions
-- [ ] Global average pooling
 
 ## Classic Architectures
 - [x] Simple ConvNet (LeNet-style)
-- [ ] AlexNet
-- [ ] VGG
-- [ ] ResNet
+- [x] ResNet
 - [ ] Inception
 
 ## Sequence Models
@@ -37,3 +34,18 @@
 - [ ] Transformer decoder
 - [ ] Vision Transformer (ViT)
 
+## Generative Models
+- [ ] Autoencoder
+- [ ] Variational Autoencoder (VAE)
+- [ ] GAN
+- [ ] Diffusion
+
+## Deep RL
+- [ ] Q-learning (tabular)
+- [ ] DQN
+- [ ] Policy Gradient / REINFORCE
+- [ ] Actor-Critic / PPO
+
+## NLP Fundamentals
+- [ ] Word embeddings (Word2Vec / skip-gram)
+- [ ] Contrastive learning (CLIP-style)

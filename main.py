@@ -4,24 +4,21 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from einops import rearrange
 
-from modules.activation import ReLU
-from modules.mlp import MLP
-from modules.conv import MaxPool2d, Conv2d
-
+from modules.resnet import ResNetCIFAR
 
 batch_size = 32
 
 transforms = torchvision.transforms.Compose(
     [
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize([0.1307], [0.3081]),
+        torchvision.transforms.Normalize([0.4914, 0.4822, 0.4465], [0.247, 0.243, 0.161]),
     ]
 )
 
-mnist_train_data = torchvision.datasets.MNIST(
+mnist_train_data = torchvision.datasets.CIFAR10(
     "./data", train=True, transform=transforms, download=True
 )
-mnist_test_data = torchvision.datasets.MNIST(
+mnist_test_data = torchvision.datasets.CIFAR10(
     "./data", train=False, transform=transforms, download=True
 )
 train_data_loader = torch.utils.data.DataLoader(
@@ -31,41 +28,12 @@ test_data_loader = torch.utils.data.DataLoader(
     mnist_test_data, batch_size=batch_size, shuffle=True, num_workers=0
 )
 
-in_size = 28 * 28
-out_size = 10
-
-
-class ConvTestModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = Conv2d(
-            in_channels=1, out_channels=3, kernel_size=3, stride=1
-        )
-        self.conv2 = Conv2d(
-            in_channels=3, out_channels=6, kernel_size=3, stride=1
-        )
-        self.maxpool = MaxPool2d(kernel_size=2, stride=2)
-        self.activation = ReLU()
-        self.mlp = MLP(150, [128], 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.activation(x)
-        x = self.maxpool(x)
-        x = self.conv2(x)
-        x = self.activation(x)
-        x = self.maxpool(x)
-        x = rearrange(x, "B C H W -> B (C H W)")
-        x = self.mlp(x)
-        return x
-
-
-model = ConvTestModel()
+model = ResNetCIFAR()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 cross_entropy_loss = nn.CrossEntropyLoss()
 
 losses = []
-num_epochs = 3
+num_epochs = 1
 for _ in range(num_epochs):
     for batch in train_data_loader:
         optimizer.zero_grad()
@@ -77,6 +45,7 @@ for _ in range(num_epochs):
         loss = cross_entropy_loss(predictions, labels)
 
         losses.append(loss.item())
+        print(loss.item())
 
         loss.backward()
         optimizer.step()

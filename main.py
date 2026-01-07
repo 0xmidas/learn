@@ -3,10 +3,11 @@ import torchvision
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from einops import rearrange
+from tqdm import tqdm
 
 from modules.resnet import ResNetCIFAR
 
-batch_size = 32
+batch_size = 256
 
 transforms = torchvision.transforms.Compose(
     [
@@ -29,13 +30,13 @@ test_data_loader = torch.utils.data.DataLoader(
 )
 
 model = ResNetCIFAR()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 cross_entropy_loss = nn.CrossEntropyLoss()
 
 losses = []
 num_epochs = 1
 for _ in range(num_epochs):
-    for batch in train_data_loader:
+    for batch in tqdm(train_data_loader):
         optimizer.zero_grad()
 
         inputs, labels = batch

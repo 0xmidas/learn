@@ -6,14 +6,15 @@ import torch
 text_file = "./data/shakespeare.txt"
 
 with open(text_file, "r") as f:
-    text = f.read()
+   text = f.read()
 print(f"Length of dataset in characters: {len(text)}")
+
 
 STOP_TOKEN = 27
 VOCAB_SIZE = 28  # 26 letters + space + stop
-HIDDEN_SIZE = 512 
-BATCH_SIZE = 16 
-CHUNK_SIZE = 256
+HIDDEN_SIZE = 512
+BATCH_SIZE = 128 
+CHUNK_SIZE = 128
 
 
 def text_to_tokens(text, stop=False):
@@ -52,11 +53,11 @@ def tokens_to_text(tokens):
     return ''.join(chars)
 
 
-model = RNN(VOCAB_SIZE, 64)
+model = RNN(VOCAB_SIZE, HIDDEN_SIZE, num_layers=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.CrossEntropyLoss()
 
-for epoch in range(2048):
+for epoch in range(16 * 32):
     for i in range(0, len(data) - CHUNK_SIZE - 1, CHUNK_SIZE * BATCH_SIZE):
         inputs = []
         targets = []
@@ -73,9 +74,10 @@ for epoch in range(2048):
         inputs = torch.stack(inputs)
         targets = torch.stack(targets)
 
-        logits = model(inputs)
+        logits = model(inputs)  # (seq_len, batch, vocab)
+        logits = logits.transpose(0, 1)  # (batch, seq_len, vocab)
 
-        loss = criterion(logits.view(-1, logits.size(-1)), targets.view(-1))
+        loss = criterion(logits.reshape(-1, logits.size(-1)), targets.view(-1))
 
 
         optimizer.zero_grad()
@@ -87,7 +89,7 @@ for epoch in range(2048):
 
 
 
-test = "i"
-output = model.sample(torch.tensor(text_to_tokens(test, stop=False)), 100)
+test = "d"
+output = model.sample(torch.tensor(text_to_tokens(test, stop=False), dtype=torch.long), 100)
 print(tokens_to_text(output))
 

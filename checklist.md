@@ -23,8 +23,8 @@
 - [ ] Inception
 
 ## Sequence Models
-- [ ] RNN
-- [ ] LSTM
+- [x] RNN
+- [x] LSTM
 - [ ] GRU
 
 ## Attention & Transformers

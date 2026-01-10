@@ -14,13 +14,13 @@
 - [x] im2col efficient convolution
 - [x] Batch normalization
 - [x] Residual/skip connections
-- [ ] Depthwise separable convolutions
-- [ ] Transposed convolutions
+- [x] Depthwise separable convolutions
+- [x] Transposed convolutions
 
 ## Classic Architectures
 - [x] Simple ConvNet (LeNet-style)
 - [x] ResNet
-- [ ] Inception
+- [x] MobileNet
 
 ## Sequence Models
 - [x] RNN
@@ -37,7 +37,7 @@
 ## Generative Models
 - [ ] Autoencoder
 - [ ] Variational Autoencoder (VAE)
-- [ ] GAN
+- [x] GAN
 - [ ] Diffusion
 
 ## Deep RL
